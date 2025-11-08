@@ -1,116 +1,139 @@
-# Security Guidelines for codeguide-starter
+# Security Guidelines for `codeguide-ai-exam-app`
 
-This document defines mandatory security principles and implementation best practices tailored to the **codeguide-starter** repository. It aligns with Security-by-Design, Least Privilege, Defense-in-Depth, and other core security tenets. All sections reference specific areas of the codebase (e.g., `/app/api/auth/route.ts`, CSS files, environment configuration) to ensure practical guidance.
+## 1. Introduction and Scope
+This document defines security best practices and controls tailored to the `codeguide-ai-exam-app`, an online exam and practice platform built with Next.js, TypeScript, Drizzle ORM, and containerized via Docker. It covers all phases: design, development, testing, deployment, and maintenance. Adhering to these guidelines will ensure a robust, resilient, and trustworthy application.
 
----
-
-## 1. Security by Design
-
-• Embed security from day one: review threat models whenever adding new features (e.g., new API routes, data fetching).
-• Apply “secure defaults” in Next.js configuration (`next.config.js`), enabling strict mode and disabling debug flags in production builds.
-• Maintain a security checklist in your PR template to confirm that each change has been reviewed against this guideline.
-
----
-
-## 2. Authentication & Access Control
-
-### 2.1 Password Storage
-- Use **bcrypt** (or Argon2) with a per-user salt to hash passwords in `/app/api/auth/route.ts`.
-- Enforce a strong password policy on both client and server: minimum 12 characters, mixed case, numbers, and symbols.
-
-### 2.2 Session Management
-- Issue sessions via Secure, HttpOnly, SameSite=strict cookies. Do **not** expose tokens to JavaScript.
-- Implement absolute and idle timeouts. For example, invalidate sessions after 30 minutes of inactivity.
-- Protect against session fixation by regenerating session IDs after authentication.
-
-### 2.3 Brute-Force & Rate Limiting
-- Apply rate limiting at the API layer (e.g., using `express-rate-limit` or Next.js middleware) on `/api/auth` to throttle repeated login attempts.
-- Introduce exponential backoff or temporary lockout after N failed attempts.
-
-### 2.4 Role-Based Access Control (Future)
-- Define user roles in your database model (e.g., `role = 'user' | 'admin'`).
-- Enforce server-side authorization checks in every protected route (e.g., in `dashboard/layout.tsx` loader functions).
+## 2. Core Security Principles
+- **Security by Design**: Embed security at every phase, from architecture to production.
+- **Least Privilege**: Grant minimal permissions to users, services, and database roles.
+- **Defense in Depth**: Layer controls so that compromising one doesn’t compromise all.
+- **Fail Securely**: On errors or timeouts, avoid revealing internals; default to safe behavior.
+- **Secure Defaults**: All new features should be secure out-of-the-box.
 
 ---
 
-## 3. Input Handling & Processing
+## 3. Authentication & Access Control
+### 3.1 Teacher & Student Flows
+- **Teacher Authentication**:
+  - Use **Better Auth** or **NextAuth** with OAuth (e.g., Google) and strong credential storage.
+  - Enforce multi-factor authentication (MFA) for teacher accounts.
+- **Student Authentication**:
+  - Issue time-limited, single-use exam codes.
+  - Validate codes server-side against an allow-list in PostgreSQL.
 
-### 3.1 Validate & Sanitize All Inputs
-- On **client** (`sign-up/page.tsx`, `sign-in/page.tsx`): perform basic format checks (email regex, password length).
-- On **server** (`/app/api/auth/route.ts`): re-validate inputs with a schema validator (e.g., `zod`, `Joi`).
-- Reject or sanitize any unexpected fields to prevent injection attacks.
+### 3.2 Password Policies & Session Management
+- Store passwords using **bcrypt** or **Argon2** with unique salts.
+- Generate cryptographically secure, unpredictable session IDs.
+- Set session cookies with `HttpOnly`, `Secure`, and `SameSite=Strict`.
+- Enforce idle and absolute session timeouts; provide logout endpoints.
+- Protect against session fixation by rotating session IDs on login.
 
-### 3.2 Prevent Injection
-- If you introduce a database later, always use parameterized queries or an ORM (e.g., Prisma) rather than string concatenation.
-- Avoid dynamic `eval()` or template rendering with unsanitized user input.
-
-### 3.3 Safe Redirects
-- When redirecting after login or logout, validate the target against an allow-list to prevent open redirects.
-
----
-
-## 4. Data Protection & Privacy
-
-### 4.1 Encryption & Secrets
-- Enforce HTTPS/TLS 1.2+ for all front-end ↔ back-end communications.
-- Never commit secrets—use environment variables and a secrets manager (e.g., AWS Secrets Manager, Vault).
-
-### 4.2 Sensitive Data Handling
-- Do ​not​ log raw passwords, tokens, or PII in server logs. Mask or redact any user identifiers.
-- If storing PII in `data.json` or a future database, classify it and apply data retention policies.
+### 3.3 Role-Based Access Control (RBAC)
+- Define distinct roles: `Teacher`, `Student`, `Admin`, etc.
+- Enforce server-side authorization for every protected route/API.
+- Validate JWTs if used: check `alg`, signature, `exp`, `iss`, and `aud`.
+- Apply the principle of least privilege in API handlers and database queries.
 
 ---
 
-## 5. API & Service Security
-
-### 5.1 HTTPS Enforcement
-- In production, redirect all HTTP traffic to HTTPS (e.g., via Vercel’s redirect rules or custom middleware).
-
-### 5.2 CORS
-- Configure `next.config.js` or API middleware to allow **only** your front-end origin (e.g., `https://your-domain.com`).
-
-### 5.3 API Versioning & Minimal Exposure
-- Version your API routes (e.g., `/api/v1/auth`) to handle future changes without breaking clients.
-- Return only necessary fields in JSON responses; avoid leaking internal server paths or stack traces.
-
----
-
-## 6. Web Application Security Hygiene
-
-### 6.1 CSRF Protection
-- Use anti-CSRF tokens for any state-changing API calls. Integrate Next.js CSRF middleware or implement synchronizer tokens stored in cookies.
-
-### 6.2 Security Headers
-- In `next.config.js` (or a custom server), add these headers:
-  - `Strict-Transport-Security: max-age=63072000; includeSubDomains; preload`
-  - `X-Content-Type-Options: nosniff`
-  - `X-Frame-Options: DENY`
-  - `Referrer-Policy: no-referrer-when-downgrade`
-  - `Content-Security-Policy`: restrict script/style/src to self and trusted CDNs.
-
-### 6.3 Secure Cookies
-- Set `Secure`, `HttpOnly`, `SameSite=Strict` on all cookies. Avoid storing sensitive data in `localStorage`.
-
-### 6.4 Prevent XSS
-- Escape or encode all user-supplied data in React templates. Avoid `dangerouslySetInnerHTML` unless content is sanitized.
+## 4. Input Handling and Processing
+- **Server-Side Validation**: Duplicate all client-side checks on the server.
+- **Prevent Injection**:
+  - Use Drizzle ORM’s parameterized queries—never string-concatenate SQL.
+  - Validate and sanitize all form fields (`examCode`, free-text answers, etc.).
+- **XSS Mitigation**:
+  - Output-encode any user-supplied content (e.g., essay previews).
+  - Use a strong **Content Security Policy (CSP)**.
+- **Restrict Redirects**:
+  - Whitelist internal URLs only.
+- **File Uploads** (if any):
+  - Validate MIME types, scan for malware, store outside webroot.
 
 ---
 
-## 7. Infrastructure & Configuration Management
-
-- Harden your hosting environment (e.g., Vercel/Netlify) by disabling unnecessary endpoints (GraphQL/GraphiQL playgrounds in production).
-- Rotate secrets and API keys regularly via your secrets manager.
-- Maintain minimal privileges: e.g., database accounts should only have read/write on required tables.
-- Keep Node.js, Next.js, and all system packages up to date.
+## 5. Data Protection and Privacy
+- **Encryption in Transit**: Enforce HTTPS/TLS 1.2+ via HSTS and redirect HTTP to HTTPS.
+- **Encryption at Rest**:
+  - Encrypt database volumes (e.g., AWS RDS encryption).
+  - Secure any stored PII with field-level encryption if required.
+- **Secrets Management**:
+  - Store API keys (e.g., Gemini AI) in a vault or environment variables; do not hardcode.
+  - Rotate secrets periodically.
+- **Data Minimization**:
+  - Only collect and store necessary fields (e.g., student names, answers).
+- **Logging & Monitoring**:
+  - Mask or redact PII in logs.
+  - Centralize logs in a secure, write-only store.
 
 ---
 
-## 8. Dependency Management
-
-- Commit and maintain `package-lock.json` to guarantee reproducible builds.
-- Integrate a vulnerability scanner (e.g., GitHub Dependabot, Snyk) to monitor and alert on CVEs in dependencies.
-- Trim unused packages; each added library increases the attack surface.
+## 6. API & Service Security
+- **HTTPS Everywhere**: All API routes must reject non-TLS requests.
+- **Rate Limiting & Throttling**:
+  - Limit login attempts and exam-code submissions to mitigate brute-force.
+- **CORS Policy**:
+  - Restrict origins to allowed front-end domains.
+- **HTTP Methods**:
+  - Use GET for reads, POST for creates, PUT/PATCH for updates, DELETE for removals.
+- **Minimal Response Data**:
+  - Return only needed fields; avoid exposing internal IDs or debug flags.
 
 ---
 
-Adherence to these guidelines will ensure that **codeguide-starter** remains secure, maintainable, and resilient as it evolves. Regularly review and update this document to reflect new threats and best practices.
+## 7. Web Application Security Hygiene
+- **Anti-CSRF**:
+  - Protect state-changing endpoints with synchronizer tokens.
+- **Security Headers**:
+  - `Content-Security-Policy`, `Strict-Transport-Security`, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy: no-referrer`.
+- **Secure Cookies**: Already set in Session Management.
+- **Clickjacking Protection**: Enforce via CSP or `X-Frame-Options`.
+- **Subresource Integrity (SRI)**: When loading third-party scripts/CSS.
+
+---
+
+## 8. Infrastructure & Configuration Management
+- **Server Hardening**:
+  - Disable unused services, default accounts, and ports on containers/VMs.
+- **TLS Configuration**:
+  - Use strong ciphers; disable SSLv3, TLS 1.0/1.1.
+- **Environment Segregation**:
+  - Separate dev, staging, and prod networks.
+- **Disable Debugging in Prod**:
+  - No stack traces or verbose logs exposed to end users.
+
+---
+
+## 9. Dependency Management
+- **Lockfiles**:
+  - Commit `package-lock.json` or `yarn.lock` for deterministic builds.
+- **Vulnerability Scanning**:
+  - Integrate SCA tools (e.g., Dependabot, Snyk) in CI.
+- **Minimal Footprint**:
+  - Only include essential libraries (e.g., Drizzle, shadcn/ui).
+
+---
+
+## 10. Testing, Monitoring, and Incident Response
+- **Automated Tests**:
+  - Unit tests (Jest/Vitest) for business logic.
+  - Integration tests for API routes (React Testing Library).
+  - E2E tests (Cypress/Playwright) for full exam flows.
+- **Security Testing**:
+  - Regular dependency vulnerability scans.
+  - Periodic penetration tests / code reviews.
+- **Monitoring & Alerts**:
+  - Track unusual patterns (e.g., high failed logins).
+  - Maintain an incident response plan with clear roles and communication channels.
+
+---
+
+## 11. Additional Recommendations
+- **Real-Time WebSockets**:
+  - Authenticate each socket connection; validate tokens.
+  - Rate-limit events to prevent flooding.
+- **Gemini AI Integration**:
+  - Encapsulate AI calls in a single server module (`lib/gemini.ts`).
+  - Validate and sanitize prompts and responses.
+  - Handle API timeouts and retries gracefully.
+
+**By following these guidelines, `codeguide-ai-exam-app` will maintain a strong security posture throughout its lifecycle, safeguarding user data and ensuring trustworthy operations.**

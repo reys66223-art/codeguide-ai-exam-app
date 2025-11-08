@@ -39,28 +39,42 @@ const staticData = {
   navMain: [
     {
       title: "Dashboard",
-      url: "#",
+      url: "/dashboard",
       icon: IconDashboard,
     },
     {
-      title: "Lifecycle",
+      title: "Exams",
       url: "#",
-      icon: IconListDetails,
+      icon: IconFileDescription,
+      items: [
+        {
+          title: "All Exams",
+          url: "/dashboard/exams",
+        },
+        {
+          title: "Create Exam",
+          url: "/dashboard/exams/create",
+        },
+        {
+          title: "Student Registration",
+          url: "/dashboard/students",
+        },
+      ],
     },
     {
-      title: "Analytics",
+      title: "Monitoring",
       url: "#",
       icon: IconChartBar,
-    },
-    {
-      title: "Projects",
-      url: "#",
-      icon: IconFolder,
-    },
-    {
-      title: "Team",
-      url: "#",
-      icon: IconUsers,
+      items: [
+        {
+          title: "Live Monitor",
+          url: "/dashboard/monitoring",
+        },
+        {
+          title: "Results",
+          url: "/dashboard/results",
+        },
+      ],
     },
   ],
   navClouds: [
