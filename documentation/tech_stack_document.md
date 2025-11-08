@@ -1,90 +1,102 @@
-# Tech Stack Document
+# codeguide-ai-exam-app Tech Stack Document
 
-This document explains the key technologies chosen for the **codeguide-starter** project. It’s written in everyday language so anyone—technical or not—can understand why each tool was picked and how it supports the application.
+This document explains, in everyday language, why we chose each technology for the **Online Exam & Practice App for Schools**. You don’t need a technical background to understand how each piece fits together.
 
 ## 1. Frontend Technologies
-The frontend is everything the user sees and interacts with. For this project, we’ve used:
+
+These are the tools we use to build everything students and teachers see and interact with in their browser:
 
 - **Next.js (App Router)**
-  - A React framework that makes page routing, server-side rendering, and API routes very simple.
-  - Enhances user experience by pre-rendering pages on the server or at build time, leading to faster initial load.
-- **React 18**
-  - The underlying library for building user interfaces with reusable components.
-  - Provides a smooth, interactive experience thanks to its virtual DOM and modern hooks.
+  - A framework built on React that makes page navigation fast and lets us decide whether parts run on the server or in the browser.
+  - Helps us deliver exam questions quickly and also update the student’s timer in real time.
+- **React**
+  - The core library for building the interactive parts of our app (buttons, forms, menus).
 - **TypeScript**
-  - A superset of JavaScript that adds types (labels for data).
-  - Helps catch errors early during development and makes the code easier to maintain.
-- **CSS (globals.css & theme.css)**
-  - **globals.css** applies base styles (fonts, colors, resets) across the entire app.
-  - **dashboard/theme.css** defines the look and feel specific to the dashboard area.
-  - This separation keeps styles organized and avoids accidental style conflicts.
-
-By combining these tools, we have a clear structure (Next.js folders for pages and layouts), safer code (TypeScript), and flexible styling with vanilla CSS.
+  - Adds a safety net around our code by checking for mistakes before we even run the app.
+  - Reduces errors in complex data like exam questions and student answers.
+- **Tailwind CSS**
+  - A utility-first styling tool that speeds up layout and design.
+  - Lets us create custom exam interfaces and dashboards without writing a lot of CSS from scratch.
+- **shadcn/ui**
+  - A collection of pre-built components (tables, dialogs, inputs) that we can customize to match our needs.
+  - Speeds up development of forms for creating exams and the student exam interface.
+- **Optional State Management (Zustand or Jotai)**
+  - For the student exam flow, a lightweight tool to keep track of answers, timer, and navigation between questions.
 
 ## 2. Backend Technologies
-The backend handles data, user accounts, and the logic behind the scenes. Our choices here are:
+
+These technologies power the logic behind the scenes—handling data, saving exams, and running automated scoring:
 
 - **Next.js API Routes**
-  - Allows us to write server-side code (`route.ts` files) alongside our frontend in the same project.
-  - Runs on Node.js, so we can handle requests like sign-up, sign-in, and data fetching in one place.
-- **Node.js Runtime**
-  - The JavaScript environment on the server that executes our API routes.
-- **bcrypt** (npm package)
-  - A library for hashing passwords securely before storing them.
-  - Ensures that even if someone got access to our data, raw passwords aren’t visible.
-- **(Optional) NextAuth.js or JWT**
-  - While this starter kit shows a custom authentication flow, it can easily integrate services like NextAuth.js for email-based login or JWT (JSON Web Tokens) for stateless sessions.
-
-These components work together to receive user credentials, verify or store them securely, manage sessions or tokens, and deliver protected data back to the frontend.
+  - Let us write backend code right alongside our frontend in the same project.
+  - We use them for actions like creating exams, submitting answers, and calling external services for scoring.
+- **Better Auth**
+  - A pre-built authentication system that we extend for teachers (via username/password or Google login) and adapt for students (using unique exam codes).
+- **PostgreSQL (Database)**
+  - A reliable database that stores all our information: teacher profiles, student lists, exams, questions, and submissions.
+- **Drizzle ORM**
+  - A tool that translates our in-app data models into database queries, all with TypeScript safety.
+  - Ensures we don’t make mistakes when saving or fetching complex relationships.
+- **Custom AI Integration (lib/gemini.ts)**
+  - A small module dedicated to talking with the Gemini AI API for essay scoring.
+  - Keeps our AI code organized and secure on the server side.
+- **Real-Time Layer (Socket.io, Pusher, or Ably)**
+  - Enables live updates on the teacher’s monitoring dashboard (e.g., student login status, answer submissions).
 
 ## 3. Infrastructure and Deployment
-Infrastructure covers where and how we host the app, as well as how changes get delivered:
 
-- **Git & GitHub**
-  - Version control system (Git) and remote hosting (GitHub) keep track of all code changes and allow team collaboration.
-- **Vercel (or Netlify)**
-  - A popular hosting service optimized for Next.js, with one-click deployments and global content delivery.
-  - Automatically rebuilds and deploys the site whenever code is pushed to the main branch.
-- **GitHub Actions (CI/CD)**
-  - Automates tasks like linting (ESLint), formatting (Prettier), and running any tests you add.
-  - Ensures that only clean, tested code goes live.
+How we build, test, and host the application so it’s reliable and easy to update:
 
-Together, these tools provide a reliable, scalable setup where every code change is tested and deployed quickly, with minimal manual work.
+- **Docker & Docker Compose**
+  - Package the app and its database into containers so everyone—developers and CI systems—runs the same environment.
+  - Simplifies local setup: one command brings up the app and database.
+- **Vercel**
+  - A hosting platform optimized for Next.js.
+  - Automatically deploys updates when code is pushed, ensuring fast and reliable releases.
+- **Version Control (Git & GitHub)**
+  - Keeps track of changes, lets multiple developers work together, and integrates with Vercel for deployments.
+- **CI/CD Pipelines (GitHub Actions or Vercel’s built-in)**
+  - Automatically run tests and build the app before each deployment, catching errors early.
 
 ## 4. Third-Party Integrations
-While this starter kit is minimal by design, it already includes or can easily add:
 
-- **bcrypt**
-  - For secure password hashing (included as an npm dependency).
-- **NextAuth.js** (optional)
-  - A full-featured authentication library supporting email/password, OAuth, and more.
-- **Sentry or LogRocket** (optional)
-  - For real-time error tracking and performance monitoring in production.
+Services that extend our app’s capabilities without us building everything from scratch:
 
-These integrations help extend the app’s capabilities without building every feature from scratch.
+- **Gemini AI API**
+  - Automates essay scoring by comparing student responses to model answers provided by teachers.
+  - Delivers near-instant feedback and reduces manual grading work.
+- **OAuth Providers (e.g., Google)**
+  - Allows teachers to log in securely using their existing Google accounts.
+- **Real-Time Messaging Services (Pusher, Ably, or Socket.io)**
+  - Powers live dashboards so teachers can monitor exams as they happen.
 
 ## 5. Security and Performance Considerations
-We’ve baked in several measures to keep users safe and the app running smoothly:
 
-Security:
-- Passwords are never stored in plain text—bcrypt hashes them with a random salt.
-- API routes can implement CSRF protection and input validation to block malicious requests.
-- Session tokens or cookies are marked secure and HttpOnly to prevent theft via JavaScript.
+Measures we put in place to keep data safe and ensure a smooth user experience:
 
-Performance:
-- Server-side rendering (SSR) and static site generation (SSG) in Next.js deliver pages faster.
-- Code splitting and lazy-loaded components ensure users only download what they need.
-- Global CSS and theme files are small and cached by the browser for quick repeat visits.
-
-These strategies work together to give users a fast, secure experience every time.
+- **Authentication & Authorization**
+  - All teacher-only routes and APIs are protected, ensuring only authorized users can create or view exams.
+- **Environment Variables**
+  - API keys (Gemini AI, OAuth) and database credentials are stored securely, never exposed in the browser.
+- **Input Validation**
+  - Every form and API call checks incoming data to prevent errors and injection attacks.
+- **Type Safety (TypeScript & Drizzle ORM)**
+  - Catches many errors at compile time, reducing runtime crashes.
+- **Performance Optimizations**
+  - Server Components in Next.js for data-heavy pages (Teacher Dashboard).
+  - Client Components for interactive parts (Student Exam Timer).
+  - Tailwind CSS utility classes minimize CSS bundle size.
 
 ## 6. Conclusion and Overall Tech Stack Summary
-In building **codeguide-starter**, we chose technologies that:
 
-- Align with modern web standards (Next.js, React, TypeScript).
-- Provide a clear, file-based project structure for rapid onboarding.
-- Offer built-in support for server-side rendering, API routes, and static assets.
-- Emphasize security through password hashing, session management, and safe defaults.
-- Enable easy scaling and future enhancements via modular code and optional integrations.
+Our chosen technologies work together to meet the goals of an Online Exam & Practice App:
 
-This stack strikes a balance between simplicity for newcomers and flexibility for experienced teams. It accelerates development of a secure authentication flow and a polished dashboard, while leaving room to plug in databases, test suites, and advanced features as the project grows.
+- **Next.js + React + TypeScript** for a fast, interactive, and type-safe user interface.
+- **Tailwind CSS + shadcn/ui** for beautiful, customizable design without extra overhead.
+- **Better Auth + OAuth** for secure, role-based access.
+- **PostgreSQL + Drizzle ORM** for reliable, type-safe data management.
+- **Docker & Vercel** for consistent development environments and smooth, automatic deployments.
+- **Gemini AI** for automated essay scoring, vastly speeding up feedback.
+- **WebSockets or Real-Time Services** for live exam monitoring.
+
+These choices ensure the application is easy to build on, secure by design, and offers both teachers and students a seamless experience.
